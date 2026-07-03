@@ -1,0 +1,21 @@
+SRCS := udpserver.cpp Info.cpp
+OBJS = ${SRCS:.cpp=.o}
+
+FLAGS = -Wall -Wextra -Werror
+
+NAME = kalman
+
+.cpp.o:
+		c++ ${FLAGS} -c $< -o ${<:.cpp=.o}
+
+all: ${NAME}
+
+${NAME}: ${OBJS}
+	c++ ${FLAGS} -o ${NAME} ${OBJS}
+
+clean:
+	rm -rf ${OBJS}
+fclean: clearn
+	rm -rf ${NAME}
+
+re: fclean all
