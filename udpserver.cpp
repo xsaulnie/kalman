@@ -15,14 +15,18 @@ using namespace std;
 #define PORT     4242
 #define MAXLINE  1024
 
-int main() {
+int main(int argc, char* argv[]) {
 
     int sockfd;
     char buffer[MAXLINE];
     const char *hello = "READY";
     struct sockaddr_in servaddr;
+    struct Point sig;
 
     // Create UDP socket
+
+    parse_arguments(argc, argv, &sig);
+
     sockfd = socket(AF_INET, SOCK_DGRAM, 0);
     if (sockfd < 0) {
         perror("socket creation failed");
@@ -52,7 +56,7 @@ int main() {
 
     // Receive reply from server
 
-    Info curdata;
+    Info curdata(sig.x, sig.y);
     int n = 1;
     int step = 0;
     int ret = 1;
@@ -140,4 +144,25 @@ bool success(char buf[])
     if (buf_st.compare("GOODBYE.") == 0)
         return true;
     return false;
+}
+
+void parse_arguments(int argc, char *argv[], struct Point *sig)
+{
+    if (argc >= 4)
+    {
+        std::cout << "Too many arguments" << std::endl;
+        exit(EXIT_FAILURE);
+    }
+
+    //try catch
+
+    if (argc >= 2)
+    {
+        sig->x = stod(std::string(argv[1]));
+    }
+
+    if (argc == 3)
+    {
+        sig->y = stod(std::string(argv[2]));
+    }
 }

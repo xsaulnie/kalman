@@ -6,5 +6,6 @@
 
 bool not_finished(char buf[]);
 bool success(char buf[]);
+void parse_arguments(int argc, char *argv[], struct Point *sig);
 
 #endif

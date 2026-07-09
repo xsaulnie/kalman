@@ -19,10 +19,12 @@ class Info
    int idx;
    char choice;
    int here;
+   double dmesure;
 
    public:
    struct Point position0;
    double speed0;
+
    struct Point cur_pos;
    struct Point cur_acc;
    struct Point cur_dir;
@@ -33,9 +35,11 @@ class Info
    struct Point prev_V;
    struct Point incpred;
    struct Point dpred;
+   struct Point backup;
+   struct Point backa;
 
 
-   Info();
+   Info(double siga, double sigp);
    //void load_Info0(char buf[]);
    void ana(std::string buf);
    void add(std::string buf);

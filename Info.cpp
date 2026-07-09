@@ -4,7 +4,7 @@
 #include <vector>
 #include "Info.hpp"
 
-Info::Info()
+Info::Info(double accsig, double accpos)
 {
     this->coord[0] = 0;
     this->coord[1] = 0;
@@ -12,8 +12,14 @@ Info::Info()
     this->idx = 0;
     this->choice = '0';
     this->here = 0;
+    //this->incpred = {.x = 0.0004, .y = 0.001, .z= 0.001};
     this->incpred = {.x = 0.0004, .y = 0.001, .z= 0.001};
+    //dpred = {.x = 0.0004*300, .y = 0.001*300, .z = 0.001*300};
     dpred = {.x = 0, .y = 0, .z = 0};
+    this->dmesure = 1;
+
+    std::cout << accsig << " " << accpos << std::endl;
+    exit(0);
 }
 
 char Info::save_choice(std::string buf)
@@ -149,9 +155,10 @@ void Info::compute(int step)
 
     struct Point  mesure;
     struct Point gain;
+    //double fgain = 0.3;
     //double dpred = 0.0001;
     //double dmesure = 0.1;
-    double dmesure = 0.5;
+
 
     if (this->here == 1)
     {
@@ -205,34 +212,70 @@ void Info::compute(int step)
     this->cur_V.y = this->cur_V.y + this->prev_acc.y * 0.01;
     this->cur_V.z = this->cur_V.z + this->prev_acc.z * 0.01;
 
+
     this->result.x = this->result.x + this->prev_V.x * 0.01 + this->prev_acc.x * 0.0001 /2;
     this->result.y = this->result.y + this->prev_V.y * 0.01 + this->prev_acc.y * 0.0001 /2;
     this->result.z = this->result.z + this->prev_V.z * 0.01 + this->prev_acc.z * 0.0001 /2;
 
+    // double esti = 0;
+    // if (step % 301 == 0)
+    // {
+    //     esti = (backup.x - this->result.x) / 0.01; 
+    // }
     save_to_prev();
 
     //gain = dpred /(dpred +dmesure)
     //new dpred = (1-gain)*dpred + gain*dmesure
 
+    //gain vaud 1 : dmesure 0 (certaine)
     if (step % 300 == 0)
     {
-        gain.x = this->dpred.x/(this->dpred.x + dmesure);
-        gain.y = this->dpred.y/(this->dpred.y + dmesure);
-        gain.z = this->dpred.z/(this->dpred.z + dmesure);
+        
+        //if (fgain == 0)
+        //{
 
-        dpred.x = (1-gain.x) * this->dpred.x + gain.x*dmesure;
-        dpred.y = (1-gain.y) * this->dpred.y + gain.y*dmesure;
-        dpred.z = (1-gain.z) * this->dpred.z + gain.z*dmesure;
+        std::cerr << "dpred " << this->dpred.x << " " << this->dpred.y << " " <<this->dpred.z << std::endl;
+        gain.x = this->dpred.x/(this->dpred.x + this->dmesure);
+        gain.y = this->dpred.y/(this->dpred.y + this->dmesure);
+        gain.z = this->dpred.z/(this->dpred.z + this->dmesure);
 
-        std::cerr << "gain " << gain.x << gain.x << gain.z << std::endl;
+        // dpred.x = (1-gain.x) * this->dpred.x + gain.x*this->dmesure;
+        // dpred.y = (1-gain.y) * this->dpred.y + gain.y*this->dmesure;
+        // dpred.z = (1-gain.z) * this->dpred.z + gain.z*this->dmesure;
+        dpred.x = (this->dpred.x * this->dmesure) / (this->dpred.x + this->dmesure);
+        dpred.y = (this->dpred.y * this->dmesure) / (this->dpred.y + this->dmesure);
+        dpred.z = (this->dpred.z * this->dmesure) / (this->dpred.z + this->dmesure);
+
+        // dpred.x = 0;
+        // dpred.y = 0;
+        // dpred.z = 0;
+        //}
+
+        // dpred.x = (1-gain.x) * this->dmesure + gain.x * this->dpred.x;
+        // dpred.y = (1-gain.y) * this->dmesure + gain.y * this->dpred.y;
+        // dpred.z = (1-gain.z) * this->dmesure + gain.z * this->dpred.z;
+
+        std::cerr << "gain " << gain.x << " " << gain.y << " " << gain.z << std::endl;
+        std::cerr << "dpred " << this->dpred.x << " " <<this->dpred.y << " " <<this->dpred.z << std::endl;
+
+
 
         mesure.x = this->cur_pos.x - this->result.x;
         mesure.y = this->cur_pos.y - this->result.y;
         mesure.z = this->cur_pos.z - this->result.z;
         
+
+        //0.35 best gain !
         this->result.x = this->result.x + gain.x * (mesure.x);
         this->result.y = this->result.y + gain.y * (mesure.y);
         this->result.z = this->result.z + gain.z * (mesure.z);
+
+        //double newv = (this->result.x - this->backup.x) / (0.01 * 299);
+        //std::cerr << "||| backup |||" << newv << "/" << this->prev_V.x << std::endl;
+
+        // this->prev_V.x = (this->result.x - this->backup.x) / (0.01 * 299);
+        // this->prev_V.y = (this->result.y - this->backup.y) / (0.01 * 299);
+        // this->prev_V.z = (this->result.z - this->backup.z) / (0.01 * 299);
 
         // this->result.x = this->true_pos.x;
         // this->result.y = this->true_pos.y;
@@ -254,6 +297,7 @@ void Info::save_to_prev()
     this->dpred.x += incpred.x;
     this->dpred.y += incpred.y;
     this->dpred.z += incpred.z;
+
 }
 
 std::string Info::response()
