@@ -9,3 +9,7 @@ bool success(char buf[]);
 void parse_arguments(int argc, char *argv[], struct Point *sig);
 
 #endif
+
+//60.6384956950337
+//0.9834705309808598
+//0.5

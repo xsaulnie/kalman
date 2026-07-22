@@ -48,15 +48,17 @@ int main(int argc, char* argv[]) {
     if (sendto(sockfd, hello, strlen(hello), MSG_CONFIRM,
            (const struct sockaddr *)&servaddr, sizeof(servaddr)) < 0)
         {
-            perror("Error writing data to server");
+            perror("Error sending hello message");
             exit(EXIT_FAILURE);
         }
+    std::cout << "Hello message sent" << std::endl;
     printf("Hello message sent.\n");
 
 
     // Receive reply from server
 
     Info curdata(sig.x, sig.y);
+
     int n = 1;
     int step = 0;
     int ret = 1;
@@ -150,19 +152,34 @@ void parse_arguments(int argc, char *argv[], struct Point *sig)
 {
     if (argc >= 4)
     {
-        std::cout << "Too many arguments" << std::endl;
+        std::cout << "./kalman : Too many arguments" << std::endl;
         exit(EXIT_FAILURE);
     }
 
-    //try catch
-
-    if (argc >= 2)
+    if (argc == 1)
     {
-        sig->x = stod(std::string(argv[1]));
+        sig->x = 0.0001;
+        sig->y = 0.1;
+        return;
     }
 
-    if (argc == 3)
+    try
     {
-        sig->y = stod(std::string(argv[2]));
+        if (argc >= 2)
+        {
+            sig->x = stod(std::string(argv[1]));
+            sig->y = 0.1;
+        }
+
+        if (argc == 2)
+            return;
+
+        if (argc == 3)
+            sig->y = stod(std::string(argv[2]));
+    }
+    catch (...)
+    {
+        std::cout << "./kalman : Parsing error" << std::endl;
+        exit(EXIT_FAILURE);
     }
 }

@@ -33,6 +33,7 @@ class Info
    struct Point true_pos;
    struct Point prev_acc;
    struct Point prev_V;
+   struct Point prev_dir;
    struct Point incpred;
    struct Point dpred;
    struct Point backup;
@@ -48,6 +49,7 @@ class Info
    void save(Point * var);
    void writing(std::string buf);
    void compute(int step);
+   void compute_by_speed(int step);
    std::string response();
    //struct Point speed(double V, struct Point euler);
    void display();

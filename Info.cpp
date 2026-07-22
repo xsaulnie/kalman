@@ -3,23 +3,37 @@
 #include <cstdio>
 #include <vector>
 #include "Info.hpp"
+#include <math.h>
+
+// x : 0.15770046217221534, y : 1.9150425098450796, z : 0.5880042523387061
+// 0.15770046217221534, y : 1.9150425098450796, z : 0.5880042523387061
+
+//-14978.9271201872343226569 25508.2931977407206431963 -208.6079913849022773320
+// x : 1.722334017720641, y : 1.5834824370067508, z : 1.6939691057604023
+//x : 1.722334017720641, y : 1.5834824370067508, z : 1.6939691057604023
+
 
 Info::Info(double accsig, double accpos)
 {
+    std::cerr << accsig << " " <<accpos << std::endl;
     this->coord[0] = 0;
     this->coord[1] = 0;
     this->coord[2] = 0; 
     this->idx = 0;
     this->choice = '0';
     this->here = 0;
+    this->incpred = {.x= accsig, .y=accsig, .z= accsig};
+    //this->incpred = {.x = 0.0005+accsig*0.0005, .y = 0.0005+accsig*0.0005, .z= 0.0005+accsig*0.0005};
+    //this->incpred= {.x = 0.0001, .y = 0.0001, .z= 0.0001};
+    //this->incpred= {.x = 0.0005, .y = 0.0005, .z= 0.0005};
     //this->incpred = {.x = 0.0004, .y = 0.001, .z= 0.001};
-    this->incpred = {.x = 0.0004, .y = 0.001, .z= 0.001};
     //dpred = {.x = 0.0004*300, .y = 0.001*300, .z = 0.001*300};
     dpred = {.x = 0, .y = 0, .z = 0};
-    this->dmesure = 1;
+    //this->dmesure = 0.1;
+    //this->dmesure = 1;
+    this->dmesure = accpos;
 
     std::cout << accsig << " " << accpos << std::endl;
-    exit(0);
 }
 
 char Info::save_choice(std::string buf)
@@ -150,6 +164,69 @@ void Info::display()
     printf("%.20lf %.20lf %.20lf\n", this->true_pos.x, this->true_pos.y, this->true_pos.z);
 }
 
+void Info::compute_by_speed(int step)
+{
+    // struct Point mesure;
+    // struct Point gain;
+
+    //connu pos-1 : estimated(speed) inconnu : prochaine position.
+
+    struct Point vglobal;
+
+    
+    if (step == 0)
+    {
+        this->result.x = this->true_pos.x;
+        this->result.y = this->true_pos.y;
+        this->result.z = this->true_pos.z;
+
+        this->cur_V.x = this->speed0 /3.6;
+        this->cur_V.y = 0;
+        this->cur_V.z = 0;
+        save_to_prev();
+        return;
+    }
+    if (step == 1)
+    {
+        this->cur_V.x = this->cur_V.x + this->prev_acc.x * 0.01;
+        this->cur_V.y = this->cur_V.y + this->prev_acc.y * 0.01;
+        this->cur_V.z = this->cur_V.z + this->prev_acc.z * 0.01;
+
+        std::cout << "x :" << this->prev_V.x << std::endl;
+        std::cout << "y :" << this->prev_V.y << std::endl;
+        std::cout << "z :" << this->prev_V.z << std::endl;
+
+        vglobal.x = cos(this->prev_dir.y) * cos(this->prev_dir.z) * this->prev_V.x + 
+                    (-cos(this->prev_dir.y) * sin(this->prev_dir.z) * this->prev_V.y) +
+                    sin(this->prev_dir.y) * this->prev_V.z;
+
+        vglobal.y = (cos(this->prev_dir.x) * sin(this->prev_dir.z) + sin(this->prev_dir.x) * sin(this->prev_dir.y) * cos(this->prev_dir.z)) * this->prev_V.x +
+                    (cos(this->prev_dir.x) * cos(this->prev_dir.z) - sin(this->prev_dir.x) * sin(this->prev_dir.y) * sin(this->prev_dir.z)) * this->prev_V.y + 
+                    (-sin(this->prev_dir.x) * cos(this->prev_dir.y)) * this->prev_V.z;
+
+        vglobal.z = (sin(this->prev_dir.x) * sin(this->prev_dir.z) - cos(this->prev_dir.x) * sin(this->prev_dir.y) * cos(this->prev_dir.z)) * this->prev_V.x +
+                    (sin(this->prev_dir.x) * cos(this->prev_dir.z) + cos(this->prev_dir.x) * sin(this->prev_dir.y) * sin(this->prev_dir.z)) * this->prev_V.y + 
+                    (cos(this->prev_dir.x) * cos(this->prev_dir.y)) * this->prev_V.z;
+
+        this->result.x = this->result.x + vglobal.x * 0.01;
+        this->result.y = this->result.y + vglobal.y * 0.01;
+        this->result.z = this->result.z + vglobal.z * 0.01;
+
+        save_to_prev();
+
+        std::cout << "x :" << this->result.x << std::endl;
+        std::cout << "y :" << this->result.y << std::endl;
+        std::cout << "z :" << this->result.z << std::endl;
+        exit(0);
+    }
+
+    //x :-1.19487
+    //y :0.134686
+    //z :0.5
+
+
+}
+
 void Info::compute(int step)
 {
 
@@ -160,11 +237,11 @@ void Info::compute(int step)
     //double dmesure = 0.1;
 
 
-    if (this->here == 1)
-    {
-        std::cerr << "On step : " << step << std::endl;
-        this->here = 0;
-    }
+    // if (this->here == 1)
+    // {
+    //     std::cerr << "On step : " << step << std::endl;
+    //     this->here = 0;
+    // }
 
     if (step == 0)
     {
@@ -228,6 +305,18 @@ void Info::compute(int step)
     //new dpred = (1-gain)*dpred + gain*dmesure
 
     //gain vaud 1 : dmesure 0 (certaine)
+    // if (step % 300 == 0)
+    // {
+    //     this->result.x = this->true_pos.x;
+    //     this->result.y = this->true_pos.y;
+    //     this->result.z = this->true_pos.z;
+
+
+    //     save_to_prev();
+    //     //exit(0);
+    //     return;
+    // }
+
     if (step % 300 == 0)
     {
         
@@ -297,6 +386,10 @@ void Info::save_to_prev()
     this->dpred.x += incpred.x;
     this->dpred.y += incpred.y;
     this->dpred.z += incpred.z;
+
+    this->prev_dir.x = this->cur_dir.x;
+    this->prev_dir.y = this->cur_dir.y;
+    this->prev_dir.z = this->cur_dir.z;
 
 }
 
