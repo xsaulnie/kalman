@@ -9,11 +9,86 @@
 #include <iostream>
 #include <string>
 #include <poll.h>
+#include "plot.h"
 
 using namespace std;
 
 #define PORT     4242
 #define MAXLINE  1024
+
+void plot_trajectory(Info *data, int id1, int id2)
+{
+    int len;
+    struct Point cur;
+    struct Point max;
+    struct Point min;
+    struct Point grad;
+    stringstream ss;
+    signalsmith::plot::Plot2D plot;
+    int angle;
+
+        len = data->histsize();
+
+		auto &traj = plot.line();
+        max.x = data->hist(0).get(id1);
+        max.y = data->hist(0).get(id2);
+        min.x = data->hist(0).get(id1);
+        min.y = data->hist(0).get(id2);
+
+        for (int i = 0 ; i < len ; i++)
+        {
+            cur = data->hist(i);
+            traj.add(cur.get(id1), cur.get(id2));
+            if (max.x < cur.get(id1))
+                max.x = cur.get(id1);
+            if (max.y < cur.get(id2))
+                max.y = cur.get(id2);
+            if (min.x > cur.get(id1))
+                min.x = cur.get(id1);
+            if (min.y > cur.get(id2))
+                min.y = cur.get(id2);
+
+            if (i % (30 *60 * 100) == 0)
+            {
+                ss << i / (6000) << " munutes";
+                angle = (i / (30 * 60 * 100)) % 2 == 0 ? 25 : -25;
+                traj.label(cur.get(id1), cur.get(id2), ss.str(), angle, 15);
+                ss.str("");
+                ss.clear();
+            }
+        }
+
+
+		traj.label("trajectory");
+        grad.x = (int(max.x) - int(min.x)) /10 * 10 / 4;
+        grad.y = (int(max.y) - int(min.y)) /10 * 10 / 4;
+
+        if (id1 == 1 && id2 == 2)
+        {
+
+            plot.x.major(0).ticks(r10(min.x) + grad.x, r10(min.x)+ grad.x * 2, r10(min.x) + grad.x * 3).minors(r10(min.x), r10(max.x)).label("x");
+		    plot.y.major(0).ticks(r10(min.y) + grad.y, r10(min.y)+ grad.y * 2, r10(min.y) + grad.y * 3).minors(r10(min.y), r10(max.y)).label("y");
+            plot.write("trajectory-x-y.svg");
+        }
+
+        else if (id1 == 2 && id2 == 3)
+        {
+            plot.x.major(0).ticks(r10(min.x) + grad.x, r10(min.x)+ grad.x * 2, r10(min.x) + grad.x * 3).minors(r10(min.x), r10(max.x)).label("y");
+		    plot.y.major(0).ticks(r10(min.y) + grad.y, r10(min.y)+ grad.y * 2, r10(min.y) + grad.y * 3).minors(r10(min.y), r10(max.y)).label("z");
+            plot.write("trajectory-y-z.svg");
+        }
+        else if (id1 == 1 && id2 == 3)
+        {
+            plot.x.major(0).ticks(r10(min.x) + grad.x, r10(min.x)+ grad.x * 2, r10(min.x) + grad.x * 3).minors(r10(min.x), r10(max.x)).label("x");
+		    plot.y.major(0).ticks(r10(min.y) + grad.y, r10(min.y)+ grad.y * 2, r10(min.y) + grad.y * 3).minors(r10(min.y), r10(max.y)).label("z");
+            plot.write("trajectory-x-z.svg");
+        }
+}
+
+int r10(double nb)
+{
+    return (int(nb)/10 *10);    
+}
 
 int main(int argc, char* argv[]) {
 
@@ -22,8 +97,6 @@ int main(int argc, char* argv[]) {
     const char *hello = "READY";
     struct sockaddr_in servaddr;
     struct Point sig;
-
-    // Create UDP socket
 
     parse_arguments(argc, argv, &sig);
 
@@ -44,18 +117,15 @@ int main(int argc, char* argv[]) {
 
     socklen_t len = sizeof(servaddr);
 
-    // Send message to server
+    // Connecting to server
     if (sendto(sockfd, hello, strlen(hello), MSG_CONFIRM,
            (const struct sockaddr *)&servaddr, sizeof(servaddr)) < 0)
         {
             perror("Error sending hello message");
             exit(EXIT_FAILURE);
         }
-    std::cout << "Hello message sent" << std::endl;
-    printf("Hello message sent.\n");
+    std::cout << "Connection message sent" << std::endl;
 
-
-    // Receive reply from server
 
     Info curdata(sig.x, sig.y);
 
@@ -65,16 +135,11 @@ int main(int argc, char* argv[]) {
 
     while (n > 0)
     {
-        //std::cout << step << std::endl;
         while(not_finished(buffer) && n > 0 && ret > 0)
         {
-        //std::cout << "enter" << std::endl;
             ret = poll(&pfd, 1, 1000);
-
             if (ret == 0)
                 break;
-
-            //std::cout << "ret " << ret << std::endl;
             n = recvfrom(sockfd, buffer, MAXLINE, MSG_WAITALL,
                             (struct sockaddr *)&servaddr, &len);
             //std::cout << n << std::endl;
@@ -103,6 +168,8 @@ int main(int argc, char* argv[]) {
         step = step + 1;
     }
 
+
+
     close(sockfd);
     //curdata.display();
     if (n <= 0) 
@@ -121,6 +188,10 @@ int main(int argc, char* argv[]) {
     else
     {
         std::cout << "\nSimulation correctly tracked !" << std::endl;
+        curdata.show_trajectory();
+        plot_trajectory(&curdata, 1, 2);
+        plot_trajectory(&curdata, 2, 3);
+        plot_trajectory(&curdata, 1, 3);
         int output = system("python test.py");
         exit(output);
     }
@@ -159,7 +230,7 @@ void parse_arguments(int argc, char *argv[], struct Point *sig)
     if (argc == 1)
     {
         sig->x = 0.0001;
-        sig->y = 0.1;
+        sig->y = 0.2;
         return;
     }
 
@@ -168,7 +239,7 @@ void parse_arguments(int argc, char *argv[], struct Point *sig)
         if (argc >= 2)
         {
             sig->x = stod(std::string(argv[1]));
-            sig->y = 0.1;
+            sig->y = 0.2;
         }
 
         if (argc == 2)

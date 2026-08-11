@@ -3,7 +3,7 @@ SRCS	:= udpserver.cpp Info.cpp\
 OBJS	=	${SRCS:.cpp=.o}
 
 
-FLAGS	:=	-g -fsanitize=address -Wall -Wextra -Werror #-std=c++98 -g
+FLAGS	:=	-g -fsanitize=address -Wall -Wextra -Werror #-std=c++98
 
 NAME	:=	kalman
 

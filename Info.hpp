@@ -4,12 +4,16 @@
 #include <string>
 #include <sstream>
 #include <iomanip>
+#include <vector>
 
-struct Point
+class Point
 {
+    public:
     double x;
     double y;
     double z;
+
+    double get(int idx);
 };
 
 class Info
@@ -18,8 +22,8 @@ class Info
    double coord[3];
    int idx;
    char choice;
-   int here;
    double dmesure;
+   std::vector<struct Point> trajectory;
 
    public:
    struct Point position0;
@@ -41,7 +45,6 @@ class Info
 
 
    Info(double siga, double sigp);
-   //void load_Info0(char buf[]);
    void ana(std::string buf);
    void add(std::string buf);
    char save_choice(std::string buf);
@@ -50,9 +53,12 @@ class Info
    void writing(std::string buf);
    void compute(int step);
    void compute_by_speed(int step);
+   void save_point_trajectory(struct Point p);
    std::string response();
-   //struct Point speed(double V, struct Point euler);
    void display();
    void save_to_prev();
+   void show_trajectory();
+   struct Point hist(int idx);
+   size_t histsize();
 };
 #endif
