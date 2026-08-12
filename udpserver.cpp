@@ -168,8 +168,6 @@ int main(int argc, char* argv[]) {
         step = step + 1;
     }
 
-
-
     close(sockfd);
     //curdata.display();
     if (n <= 0) 
@@ -188,7 +186,6 @@ int main(int argc, char* argv[]) {
     else
     {
         std::cout << "\nSimulation correctly tracked !" << std::endl;
-        curdata.show_trajectory();
         plot_trajectory(&curdata, 1, 2);
         plot_trajectory(&curdata, 2, 3);
         plot_trajectory(&curdata, 1, 3);
@@ -221,6 +218,9 @@ bool success(char buf[])
 
 void parse_arguments(int argc, char *argv[], struct Point *sig)
 {
+    const double SIG_A = 0.0001;
+    const double SIG_P = 0.5;
+
     if (argc >= 4)
     {
         std::cout << "./kalman : Too many arguments" << std::endl;
@@ -229,8 +229,8 @@ void parse_arguments(int argc, char *argv[], struct Point *sig)
 
     if (argc == 1)
     {
-        sig->x = 0.0001;
-        sig->y = 0.2;
+        sig->x = SIG_A;
+        sig->y = SIG_P;
         return;
     }
 
@@ -239,7 +239,7 @@ void parse_arguments(int argc, char *argv[], struct Point *sig)
         if (argc >= 2)
         {
             sig->x = stod(std::string(argv[1]));
-            sig->y = 0.2;
+            sig->y = SIG_P;
         }
 
         if (argc == 2)

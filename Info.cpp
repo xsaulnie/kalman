@@ -18,7 +18,8 @@ double Point::get(int idx)
 
 Info::Info(double accsig, double accpos)
 {
-    std::cerr << accsig << " " <<accpos << std::endl;
+    std::cerr <<"sigma acceleration " << accsig << std::endl; 
+    std::cerr <<"sigma position " << accpos << std::endl;
     this->coord[0] = 0;
     this->coord[1] = 0;
     this->coord[2] = 0; 
@@ -128,7 +129,7 @@ void Info::compute_by_speed(int step)
         this->cur_V.x = this->speed0 /3.6;
         this->cur_V.y = 0;
         this->cur_V.z = 0;
-        save_to_prev();
+        save_to_prev(step);
         return;
     }
     if (step == 1)
@@ -157,7 +158,7 @@ void Info::compute_by_speed(int step)
         this->result.y = this->result.y + vglobal.y * 0.01;
         this->result.z = this->result.z + vglobal.z * 0.01;
 
-        save_to_prev();
+        save_to_prev(step);
 
         std::cout << "x :" << this->result.x << std::endl;
         std::cout << "y :" << this->result.y << std::endl;
@@ -203,7 +204,7 @@ void Info::compute(int step)
         this->cur_V.y = 0;
         this->cur_V.z = 0;
 
-        save_to_prev();
+        save_to_prev(step);
         save_point_trajectory(this->true_pos);
         return;
     }
@@ -217,26 +218,37 @@ void Info::compute(int step)
     this->result.y = this->result.y + this->prev_V.y * 0.01 + this->prev_acc.y * 0.0001 /2;
     this->result.z = this->result.z + this->prev_V.z * 0.01 + this->prev_acc.z * 0.0001 /2;
 
-    save_to_prev();
-
+    save_to_prev(step);
+    std::cout<< "step " << step << std::endl;
 
     if (step % 300 == 0)
     {
-        
-        //std::cerr << "dpred " << this->dpred.x << " " << this->dpred.y << " " <<this->dpred.z << std::endl;
+
+        std::cerr << "dpred " << this->dpred.x << " " << this->dpred.y << " " <<this->dpred.z << std::endl;
     
         gain.x = this->dpred.x/(this->dpred.x + this->dmesure);
         gain.y = this->dpred.y/(this->dpred.y + this->dmesure);
         gain.z = this->dpred.z/(this->dpred.z + this->dmesure);
 
+        // gain.x = std::pow(this->dpred.x, 2)/(std::pow(this->dpred.x, 2) + std::pow(this->dmesure, 2));
+        // gain.y = std::pow(this->dpred.y, 2)/(std::pow(this->dpred.y, 2) + std::pow(this->dmesure, 2));
+        // gain.z = std::pow(this->dpred.z, 2)/(std::pow(this->dpred.z, 2) + std::pow(this->dmesure, 2));
 
-        dpred.x = (this->dpred.x * this->dmesure) / (this->dpred.x + this->dmesure);
-        dpred.y = (this->dpred.y * this->dmesure) / (this->dpred.y + this->dmesure);
-        dpred.z = (this->dpred.z * this->dmesure) / (this->dpred.z + this->dmesure);
+        // dpred.x = (this->dpred.x * this->dmesure) / (this->dpred.x + this->dmesure);
+        // dpred.y = (this->dpred.y * this->dmesure) / (this->dpred.y + this->dmesure);
+        // dpred.z = (this->dpred.z * this->dmesure) / (this->dpred.z + this->dmesure);
+         dpred.x = (1-gain.x) * dpred.x;
+         dpred.y = (1-gain.y) * dpred.y;
+         dpred.z = (1-gain.z) * dpred.z;
+        
+        // double val = 0.0001 + 0.00003*(step/54000);
+        // this->incpred = {.x= val, .y=val, .z= val};
+        // dpred.x = (this->dpred.x * this->dmesure) / (this->dpred.x + this->dmesure);
+        // dpred.y = (this->dpred.y * this->dmesure) / (this->dpred.y + this->dmesure);
+        // dpred.z = (this->dpred.z * this->dmesure) / (this->dpred.z + this->dmesure);
 
-
-        //std::cerr << "gain " << gain.x << " " << gain.y << " " << gain.z << std::endl;
-        //std::cerr << "dpred " << this->dpred.x << " " <<this->dpred.y << " " <<this->dpred.z << std::endl;
+        std::cerr << "gain " << gain.x << " " << gain.y << " " << gain.z << std::endl;
+        std::cerr << "dpred " << this->dpred.x << " " <<this->dpred.y << " " <<this->dpred.z << std::endl;
 
         mesure.x = this->cur_pos.x - this->result.x;
         mesure.y = this->cur_pos.y - this->result.y;
@@ -244,16 +256,21 @@ void Info::compute(int step)
         
         //8652
         //0.35 gain
+        // this->result.x = this->result.x + gain.x * (mesure.x);
+        // this->result.y = this->result.y + gain.y * (mesure.y);
+        // this->result.z = this->result.z + gain.z * (mesure.z);
+        //0.5
+        //gain.x = 0.44;
+        // if (step > 432000)
+        // {
+        //     std::cout << "now"<< std::endl;
+        //     gain.x = 0.7;
+        // }
         this->result.x = this->result.x + gain.x * (mesure.x);
-        this->result.y = this->result.y + gain.y * (mesure.y);
-        this->result.z = this->result.z + gain.z * (mesure.z);
-
-        //this->true_pos.x = gain.x;
-        // this->result.x = this->result.x + 0.6 * (mesure.x);
-        // this->result.y = this->result.y + 0.6 * (mesure.y);
-        // this->result.z = this->result.z + 0.6 * (mesure.z);
+        this->result.y = this->result.y + gain.x * (mesure.y);
+        this->result.z = this->result.z + gain.x * (mesure.z);
     }
-
+    //1.9956140570575371, y : 1.7086531240056502, z : 1.2929422704221452
     save_point_trajectory(this->result);
 
 }
@@ -263,7 +280,7 @@ void Info::save_point_trajectory(struct Point p)
     this->trajectory.push_back(p);
 }
 
-void Info::save_to_prev()
+void Info::save_to_prev(int step)
 {
     this->prev_V.x = this->cur_V.x;
     this->prev_V.y = this->cur_V.y;
@@ -273,9 +290,13 @@ void Info::save_to_prev()
     this->prev_acc.y = this->cur_acc.y;
     this->prev_acc.z = this->cur_acc.z;
 
-    this->dpred.x += incpred.x;
-    this->dpred.y += incpred.y;
-    this->dpred.z += incpred.z;
+    this->dpred.x = this->dpred.x + (incpred.x + 0.00003*(step/54000));
+    this->dpred.y = this->dpred.y + (incpred.y + 0.00003*(step/54000));
+    this->dpred.z = this->dpred.z + (incpred.z + 0.00003*(step/54000));
+
+    // this->dpred.x += incpred.x + step * 0;
+    // this->dpred.y += incpred.y;
+    // this->dpred.z += incpred.z;
 
     this->prev_dir.x = this->cur_dir.x;
     this->prev_dir.y = this->cur_dir.y;

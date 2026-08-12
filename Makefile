@@ -2,13 +2,11 @@ SRCS	:= udpserver.cpp Info.cpp\
 
 OBJS	=	${SRCS:.cpp=.o}
 
-
 FLAGS	:=	-g -fsanitize=address -Wall -Wextra -Werror #-std=c++98
 
 NAME	:=	kalman
 
 .SUFFIXES: .cpp .o
-
 
 .cpp.o:
 		c++ ${FLAGS} -c $< -o ${<:.cpp=.o}

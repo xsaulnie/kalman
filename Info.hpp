@@ -56,7 +56,7 @@ class Info
    void save_point_trajectory(struct Point p);
    std::string response();
    void display();
-   void save_to_prev();
+   void save_to_prev(int step);
    void show_trajectory();
    struct Point hist(int idx);
    size_t histsize();
